@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	helper "jsondb/helpers"
 	"jsondb/types"
 	"os"
@@ -31,6 +32,8 @@ func (db *DB) Init() error {
 // CollectionPath returns the full path to a collection file
 func (db *DB) collectionPath(name string) string { return filepath.Join(db.BaseDir, (name + ".json")) }
 
+// CreateCollection creates a new collection (JSON file) in the database directory
+// Returns error if collection already exists
 func (db *DB) CreateCollection(name string) error {
 	path := db.collectionPath(name)
 
@@ -45,22 +48,35 @@ func (db *DB) CreateCollection(name string) error {
 		return fmt.Errorf("collection %q already exists", name)
 	}
 
-	// Collection does not exist. Proceed
-	col, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o666)
+	// Create parent dir (in case BaseDir was created but missing permissions)
+	if err := os.MkdirAll(db.BaseDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create database directory: %w", err)
+	}
+
+	// Collection does not exist.
+	// Write an empty collection structure
+	initial := types.CollectionFile{Entries: []types.Entry{}}
+	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create collection file %q: %w", path, err)
 	}
-	defer col.Close()
 
-	// Initialize with an empty CollectionFile JSON
-	if err := json.NewEncoder(col).Encode(types.CollectionFile{Entries: nil}); err != nil {
-		return fmt.Errorf("failed to write initial collection content to %q: %w", path, err)
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(initial); err != nil {
+		f.Close()
+		return fmt.Errorf("failed to write initial collection: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("failed to close collection file: %w", err)
 	}
 
 	return nil
 }
 
 // ReadCollection (Read All) returns all entries from a collection file
+// Empty collection will return an empty CollectionFile struct
+// Error is returned if collection does not exist or on read/parse failure
 func (db *DB) ReadCollection(name string) (*types.CollectionFile, error) {
 	path := db.collectionPath(name)
 
@@ -74,8 +90,18 @@ func (db *DB) ReadCollection(name string) (*types.CollectionFile, error) {
 	defer file.Close()
 
 	collections := types.CollectionFile{}
-	if err = json.NewDecoder(file).Decode(&collections); err != nil {
-		return &types.CollectionFile{}, err
+	decoder := json.NewDecoder(file)
+
+	if err = decoder.Decode(&collections); err != nil {
+		if err == io.EOF {
+			// empty file -> empty collection
+			return &types.CollectionFile{Entries: []types.Entry{}}, nil
+		}
+		return nil, fmt.Errorf("decode collection JSON: %w", err)
+	}
+
+	if collections.Entries == nil {
+		collections.Entries = []types.Entry{}
 	}
 
 	return &collections, nil

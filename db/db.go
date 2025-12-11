@@ -37,6 +37,10 @@ func (db *DB) collectionPath(name string) string { return filepath.Join(db.BaseD
 func (db *DB) CreateCollection(name string) error {
 	path := db.collectionPath(name)
 
+	if err := helper.ValidatePath(name); err != nil {
+		return fmt.Errorf("invalid collection name: %v", err)
+	}
+
 	exists, fileType, err := helper.PathExist(db.collectionPath(name))
 	if err != nil {
 		return err
@@ -79,6 +83,10 @@ func (db *DB) CreateCollection(name string) error {
 // Error is returned if collection does not exist or on read/parse failure
 func (db *DB) ReadCollection(name string) (*types.CollectionFile, error) {
 	path := db.collectionPath(name)
+
+	if err := helper.ValidatePath(name); err != nil {
+		return &types.CollectionFile{}, fmt.Errorf("invalid collection name: %v", err)
+	}
 
 	file, err := os.Open(path)
 	if err != nil {

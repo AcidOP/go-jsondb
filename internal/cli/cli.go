@@ -113,13 +113,6 @@ func (c *CLI) error(message string) {
 	fmt.Println()
 }
 
-func (c *CLI) errorFatal(message string) {
-	fmt.Println()
-	fmt.Println("jsondb:", message)
-	fmt.Println()
-	os.Exit(1)
-}
-
 // initDB initializes a new database at the provided path
 // and loads it into memory
 func (c *CLI) initDB(args []string) error {
@@ -127,12 +120,12 @@ func (c *CLI) initDB(args []string) error {
 		return fmt.Errorf("init command requires exactly one argument: the database file name")
 	}
 
-	if err := c.db.Init(); err != nil {
-		return fmt.Errorf("init command failed: %v", err)
-	}
+	// need to set db before Init to get BaseDir
+	c.db = db.New(args[0])
 
-	if err := c.loadDB(args); err != nil {
-		return fmt.Errorf("failed to load newly created database: %v", err)
+	if err := c.db.Init(); err != nil {
+		c.db = nil // reset db on failure
+		return fmt.Errorf("failed to initialize database: %v", err)
 	}
 
 	return nil

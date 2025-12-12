@@ -120,19 +120,25 @@ func (c *CLI) errorFatal(message string) {
 	os.Exit(1)
 }
 
+// initDB initializes a new database at the provided path
+// and loads it into memory
 func (c *CLI) initDB(args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("init command requires exactly one argument: the database file name")
 	}
 
-	c.db = db.New(args[0])
-
 	if err := c.db.Init(); err != nil {
 		return fmt.Errorf("init command failed: %v", err)
 	}
+
+	if err := c.loadDB(args); err != nil {
+		return fmt.Errorf("failed to load newly created database: %v", err)
+	}
+
 	return nil
 }
 
+// loadDB loads an existing database into memory from the provided path
 func (c *CLI) loadDB(args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("load command requires name of an existing database")

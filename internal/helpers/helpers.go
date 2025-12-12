@@ -8,15 +8,22 @@ import (
 	"strings"
 )
 
+type FileType string
+
+const (
+	TypeFile      FileType = "file"
+	TypeDirectory FileType = "dir"
+)
+
 // PathExist checks if a given path exists and whether it's a file or directory
-func PathExist(path string) (bool, string, error) {
+func PathExist(path string) (bool, FileType, error) {
 	info, err := os.Stat(path)
 	if err == nil {
 		// Path exists
 		if info.IsDir() {
-			return true, "dir", nil
+			return true, TypeDirectory, nil
 		}
-		return true, "file", nil
+		return true, TypeFile, nil
 	}
 
 	// Does not exist

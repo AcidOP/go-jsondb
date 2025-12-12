@@ -49,7 +49,7 @@ func (db *DB) CreateCollection(name string) error {
 		return err
 	}
 	if exists {
-		if fileType == "dir" {
+		if fileType == helper.TypeDirectory {
 			return fmt.Errorf("a directory exists at %q; cannot create collection with that name", path)
 		}
 		return fmt.Errorf("collection %q already exists", name)

@@ -2,10 +2,12 @@ package cli
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"jsondb/internal/db"
 	helper "jsondb/internal/helpers"
+	"jsondb/internal/types"
 	"os"
 	"strings"
 )
@@ -69,6 +71,10 @@ func (c *CLI) Run() {
 			PREFIX = fmt.Sprintf(" (%s)> ", args[0])
 		case "create":
 			if err := c.createCollection(args); err != nil {
+				c.error(err.Error())
+			}
+		case "insert", "i":
+			if err := c.insertRecord(args); err != nil {
 				c.error(err.Error())
 			}
 		default:
@@ -156,4 +162,24 @@ func (c *CLI) createCollection(args []string) error {
 	}
 
 	return c.db.CreateCollection(args[0])
+}
+
+func (c *CLI) insertRecord(args []string) error {
+	if !c.ensureDBLoaded() {
+		return fmt.Errorf("no database loaded. Use 'init' or 'load' command first")
+	}
+	if len(args) < 2 {
+		return fmt.Errorf("insert command requires at least two arguments: the collection name and the data to insert")
+	}
+
+	collectionName := args[0]
+
+	rawStr := strings.Join(args[1:], " ")
+	doc := make(map[string]any)
+
+	if err := json.Unmarshal([]byte(rawStr), &doc); err != nil {
+		return fmt.Errorf("failed to parse data as JSON: %v", err)
+	}
+
+	return c.db.InsertRecord(collectionName, &types.Record{Data: doc})
 }

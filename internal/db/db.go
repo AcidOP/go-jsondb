@@ -1,6 +1,8 @@
 package db
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +10,7 @@ import (
 	"jsondb/internal/types"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type DB struct {
@@ -113,4 +116,97 @@ func (db *DB) ReadCollection(name string) (*types.Collection, error) {
 	}
 
 	return &collections, nil
+}
+
+func (db *DB) InsertRecord(collectionName string, data *types.Record) error {
+	if data == nil || data.Data == nil {
+		return fmt.Errorf("data cannot be nil")
+	}
+	if collectionName == "" {
+		return fmt.Errorf("collection name cannot be empty")
+	}
+
+	path := db.collectionPath(collectionName)
+
+	if err := helper.ValidatePath(collectionName); err != nil {
+		return fmt.Errorf("invalid collection name: %v", err)
+	}
+
+	collection, err := db.ReadCollection(collectionName)
+	if err != nil {
+		return fmt.Errorf("failed to read collection %q: %w", collectionName, err)
+	}
+
+	entry, err := db.recordToEntry(types.OpInsert, data)
+	if err != nil {
+		return fmt.Errorf("failed to convert record to entry: %w", err)
+	}
+
+	collection.Entries = append(collection.Entries, *entry)
+
+	// Backup the collection table so we can revert in case of write failure
+	// Atomicity on the way in :)
+	backupPath := path + ".tmp"
+
+	file, err := os.Create(backupPath)
+	if err != nil {
+		file.Close()
+		return err
+	}
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+
+	if err := encoder.Encode(collection); err != nil {
+		file.Close()
+		os.Remove(backupPath)
+		return fmt.Errorf("failed to write collection JSON: %w", err)
+	}
+
+	// Write to disk
+	if err := file.Sync(); err != nil {
+		file.Close()
+		os.Remove(backupPath)
+		return fmt.Errorf("failed to sync temp file: %w", err)
+	}
+
+	// Close file so windows/unix will allow rename
+	if err := file.Close(); err != nil {
+		os.Remove(backupPath)
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	// Move backup to original path
+	if err := os.Rename(backupPath, path); err != nil {
+		os.Remove(backupPath)
+		return fmt.Errorf("failed to write updated collection: %w", err)
+	}
+
+	return nil
+}
+
+// recordToEntry generates ID, timestamp, and marshalls the data and returns an DB ready Entry
+func (db *DB) recordToEntry(op types.Operation, data *types.Record) (*types.Entry, error) {
+	if data == nil || data.Data == nil {
+		return nil, fmt.Errorf("data cannot be nil")
+	}
+
+	idBytes := make([]byte, 16)
+	if _, err := rand.Read(idBytes); err != nil {
+		return nil, fmt.Errorf("failed to generate id: %w", err)
+	}
+
+	doc, err := json.Marshal(data.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal data to JSON: %w", err)
+	}
+
+	e := &types.Entry{
+		ID:  hex.EncodeToString(idBytes),
+		TS:  time.Now().UnixNano(),
+		Op:  op,
+		Doc: doc,
+	}
+
+	return e, nil
 }

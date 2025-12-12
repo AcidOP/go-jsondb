@@ -10,7 +10,7 @@ type Entry struct {
 	Doc json.RawMessage `json:"doc"`
 }
 
-// CollectionFile models the on-disk structure: an array of entries.
-type CollectionFile struct {
+// Collection models the on-disk structure: an array of entries.
+type Collection struct {
 	Entries []Entry `json:"entries"`
 }

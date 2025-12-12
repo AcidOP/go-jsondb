@@ -59,7 +59,7 @@ func (db *DB) CreateCollection(name string) error {
 
 	// Collection does not exist.
 	// Write an empty collection structure
-	initial := types.CollectionFile{Entries: []types.Entry{}}
+	initial := types.Collection{Entries: []types.Entry{}}
 	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create collection file %q: %w", path, err)
@@ -81,29 +81,29 @@ func (db *DB) CreateCollection(name string) error {
 // ReadCollection (Read All) returns all entries from a collection file
 // Empty collection will return an empty CollectionFile struct
 // Error is returned if collection does not exist or on read/parse failure
-func (db *DB) ReadCollection(name string) (*types.CollectionFile, error) {
+func (db *DB) ReadCollection(name string) (*types.Collection, error) {
 	path := db.collectionPath(name)
 
 	if err := helper.ValidatePath(name); err != nil {
-		return &types.CollectionFile{}, fmt.Errorf("invalid collection name: %v", err)
+		return &types.Collection{}, fmt.Errorf("invalid collection name: %v", err)
 	}
 
 	file, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &types.CollectionFile{}, fmt.Errorf("collection %q does not exist", name)
+			return &types.Collection{}, fmt.Errorf("collection %q does not exist", name)
 		}
-		return &types.CollectionFile{}, err
+		return &types.Collection{}, err
 	}
 	defer file.Close()
 
-	collections := types.CollectionFile{}
+	collections := types.Collection{}
 	decoder := json.NewDecoder(file)
 
 	if err = decoder.Decode(&collections); err != nil {
 		if err == io.EOF {
 			// empty file -> empty collection
-			return &types.CollectionFile{Entries: []types.Entry{}}, nil
+			return &types.Collection{Entries: []types.Entry{}}, nil
 		}
 		return nil, fmt.Errorf("decode collection JSON: %w", err)
 	}

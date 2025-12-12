@@ -1,8 +1,6 @@
 package main
 
-import (
-	"jsondb/cli"
-)
+import "jsondb/internal/cli"
 
 // Database    -> is a Directory that contains `Collections` (JSON files)
 // Collection  -> is a JSON file that contains multiple `Entries` (JSON objects)

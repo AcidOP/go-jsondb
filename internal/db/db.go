@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	helper "jsondb/helpers"
-	"jsondb/types"
+	helper "jsondb/internal/helpers"
+	"jsondb/internal/types"
 	"os"
 	"path/filepath"
 )

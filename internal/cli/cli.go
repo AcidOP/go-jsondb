@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"jsondb/db"
-	helper "jsondb/helpers"
+	"jsondb/internal/db"
+	helper "jsondb/internal/helpers"
 	"os"
 	"strings"
 )

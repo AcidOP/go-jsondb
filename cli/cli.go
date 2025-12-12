@@ -79,19 +79,21 @@ func (c *CLI) Run() {
 
 func (c *CLI) displayHelp() {
 	fmt.Println()
-	fmt.Println("Usage: <command> [arguments]")
+	fmt.Println("jsondb - a simple JSON file-based database")
+	fmt.Println("\nAvailable commands:")
+	fmt.Println(
+		"\ninit                                - Create the database directory if it doesn't exist\n" +
+			"load                                - Load the database (directory must already exist)\n" +
+			"info                                - Display information about the loaded database\n" +
+			"create <collection>                 - Create a new collection in the database\n" +
+			"insert <collection> <data>          - Insert a new record into the database\n" +
+			"query  <collection> <clause>        - Query records from the database\n" +
+			"update <collection> <clause> <data> - Update records in the database\n" +
+			"delete <collection> <clause>        - Delete records from the database\n" +
+			"drop   <collection>                 - Drop a collection from the database\n" +
+			"help                                - Display this help message",
+	)
 	fmt.Println()
-	fmt.Println("Commands:")
-	fmt.Println("  init           					   - create DB directory if it doesn't exist")
-	fmt.Println("  load                                - load the DB (directory must exist)")
-	fmt.Println("  info							       - display info about the loaded database")
-	fmt.Println("  create <collection>                 - Create a new collection in the database")
-	fmt.Println("  insert <collection> <data>     	   - Insert a new record into the database")
-	fmt.Println("  query  <collection> <clause>        - Query records from the database")
-	fmt.Println("  update <collection> <clause> <data> - Update records in the database")
-	fmt.Println("  delete <collection> <clause>        - Delete records from the database")
-	fmt.Println("  drop   <collection>   		       - Drop a collection from the database")
-	fmt.Println("  help        	                       - Display this help message")
 	fmt.Println()
 }
 
